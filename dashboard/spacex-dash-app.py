@@ -1,4 +1,6 @@
 # Import required libraries
+from pathlib import Path
+
 import pandas as pd
 import dash
 from dash import html
@@ -7,12 +9,20 @@ from dash.dependencies import Input, Output
 import plotly.express as px
 
 # Read the SpaceX launch data into a pandas dataframe
-spacex_df = pd.read_csv("spacex_launch_dash.csv")
+# Resolved relative to this file (not the current working directory), so the
+# app runs the same whether launched from dashboard/, the repo root, or by
+# gunicorn on Render.
+DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "spacex_launch_dash.csv"
+spacex_df = pd.read_csv(DATA_PATH)
 max_payload = spacex_df['Payload Mass (kg)'].max()
 min_payload = spacex_df['Payload Mass (kg)'].min()
 
 # Create a dash application
 app = dash.Dash(__name__)
+# Exposes the underlying Flask app so a production WSGI server (gunicorn) can
+# serve it -- app.run()'s built-in server below is fine for local development
+# but isn't meant for production traffic.
+server = app.server
 
 # Create an app layout
 app.layout = html.Div(children=[

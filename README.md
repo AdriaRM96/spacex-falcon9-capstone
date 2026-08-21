@@ -30,13 +30,27 @@ The project follows a full data science workflow, from raw data to a working pre
 
 [`dashboard/spacex-dash-app.py`](dashboard/spacex-dash-app.py) is a [Plotly Dash](https://dash.plotly.com/) app for exploring the results interactively — filter by launch site, scan a pie chart of successful launches, or slide through payload mass ranges against landing outcome.
 
+**Run it locally:**
+
 ```bash
-pip install pandas dash
+pip install -r dashboard/requirements.txt
 cd dashboard
 python spacex-dash-app.py
 ```
 
 Then open `http://127.0.0.1:8050/`.
+
+**Deploy it for free (Render):**
+
+No account secrets or environment variables are needed — the app only reads a CSV that ships in this repo.
+
+1. Fork or push this repo to your own GitHub account.
+2. On [render.com](https://render.com), click **New +** → **Blueprint**, connect the repo. Render reads [`render.yaml`](render.yaml) automatically and provisions the service.
+3. Click **Apply** / **Deploy**. That's it — one deploy, no CLI.
+
+If Blueprint deploys aren't available on your plan, deploy manually instead: **New +** → **Web Service** → connect the repo → set **Build Command** to `pip install -r dashboard/requirements.txt` and **Start Command** to `gunicorn spacex-dash-app:server --chdir dashboard`.
+
+The free tier spins the service down after 15 minutes of inactivity (expect a ~30s cold start on the next visit) — fine for a portfolio piece, not for production traffic.
 
 ## Data
 
