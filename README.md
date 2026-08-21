@@ -22,13 +22,17 @@ The project follows a full data science workflow, from raw data to a working pre
 | 4. Explore | [`04_eda_sql.ipynb`](notebooks/04_eda_sql.ipynb) | SQL-driven exploration (SQLite) — launch sites, payload totals, mission outcomes, booster history. |
 | 5. Explore | [`05_eda_dataviz.ipynb`](notebooks/05_eda_dataviz.ipynb) | Visual EDA — how flight number, payload mass, and orbit relate to landing success — plus feature engineering for modeling. |
 | 6. Geolocate | [`06_launch_site_location_folium.ipynb`](notebooks/06_launch_site_location_folium.ipynb) | Interactive map of launch sites and their proximity to coastlines, railways, and highways. |
-| 7. Predict | [`07_machine_learning_prediction.ipynb`](notebooks/07_machine_learning_prediction.ipynb) | Trains and tunes Logistic Regression, SVM, Decision Tree, and KNN classifiers (`GridSearchCV`) to predict landing outcome. |
+| 7. Predict | [`07_machine_learning_prediction.ipynb`](notebooks/07_machine_learning_prediction.ipynb) | Trains and tunes Logistic Regression, SVM, Decision Tree, KNN, and XGBoost classifiers (`GridSearchCV` + `StratifiedKFold`) to predict landing outcome. |
 
-> **A note on Notebook 1:** while running this, the public SpaceX API (`api.spacexdata.com`) was intermittently returning `525` errors — an outage on their end, not in this code. The notebook is complete and correct; re-running it once the API is healthy reproduces the pipeline end to end.
+> **A note on Notebook 1:** while running this, the public SpaceX API (`api.spacexdata.com`) was intermittently returning `525` errors — an outage on their end, not in this code. The notebook falls back to a frozen local snapshot when that happens, so it still runs end to end either way.
+
+![Launch site map](docs/images/folium_launch_sites_map.png)
 
 ## Interactive dashboard
 
 [`dashboard/spacex-dash-app.py`](dashboard/spacex-dash-app.py) is a [Plotly Dash](https://dash.plotly.com/) app for exploring the results interactively — filter by launch site, scan a pie chart of successful launches, or slide through payload mass ranges against landing outcome.
+
+![Dashboard overview](docs/images/dashboard_overview.png)
 
 **Run it locally:**
 
