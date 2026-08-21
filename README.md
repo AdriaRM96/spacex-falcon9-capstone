@@ -4,11 +4,13 @@
 
 Predicting whether a Falcon 9 first stage will land successfully, and using that prediction to estimate what a SpaceX launch really costs.
 
+**[Live dashboard →](https://spacex-falcon9-dashboard.onrender.com)** *(spins up on first visit after idling — give it ~30s; see [Interactive dashboard](#interactive-dashboard) below to deploy your own copy)*
+
 ## Why this project
 
 SpaceX advertises Falcon 9 launches at around $62M, well under the $165M+ typical of competitors. The gap comes almost entirely from one thing: SpaceX reuses the first stage instead of throwing it away after every flight. If a competitor — or an analyst, investor, or space enthusiast — wants to understand SpaceX's real cost structure, the question that matters isn't "how much does a Falcon 9 launch cost on paper," it's **"how likely is that first stage to come back in one piece?"**
 
-That's the question this project answers end to end: pulling raw launch data from scratch, cleaning it into something usable, exploring what actually drives a successful landing, and building a model that predicts it.
+That's the question this project answers end to end: pulling raw launch data from scratch, cleaning it into something usable, exploring what actually drives a successful landing, building a model that predicts it, and translating that prediction into what a given mission is actually expected to cost.
 
 ## What's inside
 
@@ -22,9 +24,9 @@ The project follows a full data science workflow, from raw data to a working pre
 | 4. Explore | [`04_eda_sql.ipynb`](notebooks/04_eda_sql.ipynb) | SQL-driven exploration (SQLite) — launch sites, payload totals, mission outcomes, booster history. |
 | 5. Explore | [`05_eda_dataviz.ipynb`](notebooks/05_eda_dataviz.ipynb) | Visual EDA — how flight number, payload mass, and orbit relate to landing success — plus feature engineering for modeling. |
 | 6. Geolocate | [`06_launch_site_location_folium.ipynb`](notebooks/06_launch_site_location_folium.ipynb) | Interactive map of launch sites and their proximity to coastlines, railways, and highways. |
-| 7. Predict | [`07_machine_learning_prediction.ipynb`](notebooks/07_machine_learning_prediction.ipynb) | Trains and tunes Logistic Regression, SVM, Decision Tree, KNN, and XGBoost classifiers (`GridSearchCV` + `StratifiedKFold`) to predict landing outcome. |
+| 7. Predict | [`07_machine_learning_prediction.ipynb`](notebooks/07_machine_learning_prediction.ipynb) | Tunes Logistic Regression, SVM, Decision Tree, KNN, and XGBoost (`GridSearchCV`), compares them with 10-fold `StratifiedKFold`, explains the winner with SHAP/permutation importance, and translates landing probability into expected launch cost. |
 
-> **A note on Notebook 1:** while running this, the public SpaceX API (`api.spacexdata.com`) was intermittently returning `525` errors — an outage on their end, not in this code. The notebook falls back to a frozen local snapshot when that happens, so it still runs end to end either way.
+> **A note on Notebook 1:** the public SpaceX API (`api.spacexdata.com`) has had recurring outages. The notebook tries the live API first and falls back to a frozen local snapshot ([`data/raw/`](data/raw/)) if it's unreachable, so it runs end to end either way — verified by actually triggering the fallback path.
 
 ![Launch site map](docs/images/folium_launch_sites_map.png)
 
@@ -56,12 +58,20 @@ If Blueprint deploys aren't available on your plan, deploy manually instead: **N
 
 The free tier spins the service down after 15 minutes of inactivity (expect a ~30s cold start on the next visit) — fine for a portfolio piece, not for production traffic.
 
+## Reproducibility & code quality
+
+- **[`requirements.txt`](requirements.txt)** pins the exact versions everything was actually run with.
+- **[`.github/workflows/notebooks.yml`](.github/workflows/notebooks.yml)** re-executes all seven notebooks end to end on every push (`papermill`), and runs the test suite — both have to pass for the badge above to stay green.
+- **[`src/spacex_capstone/`](src/spacex_capstone)** holds the reusable logic (data loading/cleaning, feature engineering, model tuning/evaluation, plotting) that the notebooks import instead of redefining inline, with **16 pytest tests** ([`tests/`](tests)) covering the label construction, API-fallback behavior, and data cleaning.
+- **[`data/raw/`](data/raw)** freezes a snapshot of both external sources (SpaceX API response, Wikipedia HTML), so the pipeline doesn't depend on either staying online.
+
 ## Data
 
 `data/` holds what powers the SQL notebook, the dashboard, and the Folium map:
 - `spacex_launch_dash.csv` — dashboard data
 - `spacex_launch_geo.csv` — launch site coordinates
 - `my_data1.db` — SQLite database used for the SQL exploration
+- `raw/` — frozen snapshots of the SpaceX API and Wikipedia sources (see [`data/raw/README.md`](data/raw/README.md))
 
 ## What I found
 
@@ -69,7 +79,9 @@ The free tier spins the service down after 15 minutes of inactivity (expect a ~3
 - **Site matters.** KSC LC-39A leads with a 76.9% success rate; CCAFS LC-40, used more in the program's early years, trails at 26.9%.
 - **Heavier payloads land less reliably.** Across sites and orbits, landing success drops as payload mass increases — physics, not chance.
 - **Geography isn't an accident.** Every launch site sits within ~1 km of the coast, keeping failed landings and aborts over water instead of populated land.
-- **Decision Tree wins on generalization.** It hit 87.5% cross-validation accuracy, ahead of Logistic Regression, SVM, and KNN (84.6–84.8%). All four tie at 83.3% on the small 18-sample test split — cross-validation is the metric to trust here.
+- **SVM wins on a robust comparison.** A single 80/20 split (18 test samples) isn't enough data to reliably rank models — one flipped prediction moves accuracy by ~5.6 points. Under 10-fold `StratifiedKFold` (mean accuracy across folds), **SVM leads at 85.6%**, ahead of KNN (84.4%), Logistic Regression (83.3%), XGBoost (81.1%), and Decision Tree (80.0%).
+- **The winning model's feature importance is a warning sign, not a clean signal.** Permutation importance on SVM (the CV winner) is dominated by individual `Serial`/`LandingPad` one-hot columns with tiny effect sizes (largest ≈0.011) rather than physically meaningful features like `PayloadMass` or `Orbit`. That's a direct symptom of the 83-feature/90-sample overfitting risk flagged below — with this little data, a model can key off near-unique booster identifiers instead of learning a generalizable pattern.
+- **Landing probability translates directly to cost.** Mapping each scenario's predicted success probability onto SpaceX's advertised $62M (reused) / $165M (expendable) prices, expected launch cost ranges from ~$81M for a light LEO payload to ~$94M for a medium payload to ISS orbit — see the [business-impact section](notebooks/07_machine_learning_prediction.ipynb) for the full scenario comparison and its caveats.
 
 ## Presentation
 
@@ -77,10 +89,11 @@ The full analysis is written up as a slide deck: [`presentation/SpaceX_Capstone_
 
 ## Stack
 
-Python · pandas · scikit-learn · SQLite · BeautifulSoup · Folium · Plotly Dash · matplotlib/seaborn
+Python · pandas · scikit-learn · XGBoost · SHAP · SQLite · BeautifulSoup · Folium · Plotly Dash · matplotlib/seaborn · pytest · GitHub Actions · Render
 
 ## What's next
 
 - Pull in more recent launches (Block 5, Starship) to see whether the success-rate ceiling has moved.
 - Add booster-specific reuse count as a feature — a booster on its 10th flight likely behaves differently than one on its 1st.
 - Swap the static dashboard filters for a live-refreshing feed off the SpaceX API.
+- Replace the marketing-figure cost model in the business-impact section with a more granular cost breakdown, if SpaceX or a comparable provider ever publishes one.
