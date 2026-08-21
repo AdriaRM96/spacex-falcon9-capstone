@@ -1,0 +1,34 @@
+name: Notebooks CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  execute-notebooks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Register Jupyter kernel
+        run: python -m ipykernel install --user --name python3
+
+      - name: Execute all notebooks
+        run: |
+          set -e
+          mkdir -p /tmp/executed-notebooks
+          for nb in notebooks/*.ipynb; do
+            echo "::group::$(basename "$nb")"
+            papermill "$nb" "/tmp/executed-notebooks/$(basename "$nb")" --cwd notebooks -k python3
+            echo "::endgroup::"
+          done

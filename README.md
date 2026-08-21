@@ -1,5 +1,7 @@
 # SpaceX Falcon 9 — First Stage Landing Prediction
 
+[![Notebooks CI](https://github.com/AdriaRM96/spacex-falcon9-capstone/actions/workflows/notebooks.yml/badge.svg)](https://github.com/AdriaRM96/spacex-falcon9-capstone/actions/workflows/notebooks.yml)
+
 Predicting whether a Falcon 9 first stage will land successfully, and using that prediction to estimate what a SpaceX launch really costs.
 
 ## Why this project
