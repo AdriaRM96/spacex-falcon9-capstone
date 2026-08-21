@@ -1,4 +1,13 @@
 venv/
+.venv/
 __pycache__/
+*.pyc
 .ipynb_checkpoints/
 .DS_Store
+*.egg-info/
+.pytest_cache/
+.env
+dist/
+build/
+.vscode/
+.idea/
