@@ -83,10 +83,6 @@ The free tier spins the service down after 15 minutes of inactivity (expect a ~3
 - **The winning model's feature importance is a warning sign, not a clean signal.** Permutation importance on SVM (the CV winner) is dominated by individual `Serial`/`LandingPad` one-hot columns with tiny effect sizes (largest ≈0.011) rather than physically meaningful features like `PayloadMass` or `Orbit`. That's a direct symptom of the 83-feature/90-sample overfitting risk flagged below — with this little data, a model can key off near-unique booster identifiers instead of learning a generalizable pattern.
 - **Landing probability translates directly to cost.** Mapping each scenario's predicted success probability onto SpaceX's advertised $62M (reused) / $165M (expendable) prices, expected launch cost ranges from ~$81M for a light LEO payload to ~$94M for a medium payload to ISS orbit — see the [business-impact section](notebooks/07_machine_learning_prediction.ipynb) for the full scenario comparison and its caveats.
 
-## Presentation
-
-The full analysis is written up as a slide deck: [`presentation/SpaceX_Capstone_Presentation.pptx`](presentation/SpaceX_Capstone_Presentation.pptx).
-
 ## Stack
 
 Python · pandas · scikit-learn · XGBoost · SHAP · SQLite · BeautifulSoup · Folium · Plotly Dash · matplotlib/seaborn · pytest · GitHub Actions · Render
