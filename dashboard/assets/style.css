@@ -1,0 +1,138 @@
+:root {
+  --bg: #0a0a0a;
+  --panel: #111214;
+  --text: #e8e8e8;
+  --text-dim: #8a8f98;
+  --accent: #e5312f;
+  --telemetry: #1a5fb4;
+  --line: #2a2c30;
+}
+
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: "Rajdhani", "Arial Narrow", sans-serif;
+  margin: 0;
+}
+
+.mission-control {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.header {
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 2.4rem;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.header .subtitle {
+  font-family: "JetBrains Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.telemetry-row {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+
+.telemetry-badge {
+  font-family: "JetBrains Mono", monospace;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 22px;
+  background-color: var(--panel);
+}
+
+.telemetry-badge .label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.telemetry-badge .value {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--telemetry);
+}
+
+.telemetry-badge.status-good .value {
+  color: #2ec27e;
+}
+
+.telemetry-badge.status-warn .value {
+  color: var(--accent);
+}
+
+.section-label {
+  font-family: "JetBrains Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.controls-panel {
+  background-color: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 20px 24px;
+  margin-bottom: 28px;
+}
+
+/* Dash's Dropdown/RangeSlider render their own internal markup -- we only
+   restyle the outer text color so the labels stay readable on a dark page,
+   without fighting the library's own light-themed component internals. */
+.controls-panel .Select-control,
+.controls-panel input {
+  font-family: "Rajdhani", sans-serif;
+}
+
+.chart-panel {
+  background-color: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 24px;
+}
+
+.footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin-top: 24px;
+}
