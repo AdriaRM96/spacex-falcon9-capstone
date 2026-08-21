@@ -28,6 +28,7 @@ def plot_confusion_matrix(y: np.ndarray, y_predict: np.ndarray) -> None:
     ax.set_title("Confusion Matrix")
     ax.xaxis.set_ticklabels(["did not land", "landed"])
     ax.yaxis.set_ticklabels(["did not land", "landed"])
+    plt.show()
 
 
 def tune_model(
