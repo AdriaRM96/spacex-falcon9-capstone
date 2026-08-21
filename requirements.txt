@@ -1,0 +1,37 @@
+# Core data science stack
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.4.2
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# Data collection
+requests==2.32.3
+beautifulsoup4==4.12.3
+wget==3.2
+
+# SQL EDA notebook
+SQLAlchemy==2.0.52
+ipython-sql==0.5.0
+sqlparse==0.6.0
+prettytable==3.18.0
+
+# Geographic analysis
+folium==0.20.0
+
+# Dashboard
+dash==4.4.1
+plotly==6.9.0
+
+# Modeling benchmark and interpretability
+xgboost==3.4.1
+shap==0.46.0
+
+# Notebook execution / CI
+nbformat==5.9.2
+nbclient==0.8.0
+nbconvert==7.10.0
+papermill==2.7.0
+
+# Testing
+pytest==7.4.4
