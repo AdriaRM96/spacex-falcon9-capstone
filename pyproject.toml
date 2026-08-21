@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spacex-capstone"
+version = "0.1.0"
+description = "Reusable data, feature, model, and viz utilities for the Falcon 9 landing prediction project"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "matplotlib",
+    "seaborn",
+    "requests",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
