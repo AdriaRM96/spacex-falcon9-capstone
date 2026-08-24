@@ -281,6 +281,15 @@ def _run_prediction(payload_mass, orbit, launch_site):
     prevent_initial_call=True,
 )
 def on_predict_click(n_clicks, payload_mass, orbit, launch_site):
+    # dcc.Input(type='number') sends None while the field is empty (e.g. the
+    # user cleared it to type a new value) rather than refusing the edit, so
+    # this is a normal, expected state to handle here -- not just a guard
+    # against a caller mistake.
+    if payload_mass is None:
+        return html.Div("Enter a payload mass to get a prediction.", className="telemetry-badge status-warn")
+    if orbit is None or launch_site is None:
+        return html.Div("Select an orbit and launch site to get a prediction.", className="telemetry-badge status-warn")
+
     try:
         result = _run_prediction(payload_mass, orbit, launch_site)
     except Exception as exc:  # noqa: BLE001 - surfaced to the user, not swallowed
