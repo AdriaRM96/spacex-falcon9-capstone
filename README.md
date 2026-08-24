@@ -24,7 +24,8 @@ The project follows a full data science workflow, from raw data to a working pre
 | 4. Explore | [`04_eda_sql.ipynb`](notebooks/04_eda_sql.ipynb) | SQL-driven exploration (SQLite) — launch sites, payload totals, mission outcomes, booster history. |
 | 5. Explore | [`05_eda_dataviz.ipynb`](notebooks/05_eda_dataviz.ipynb) | Visual EDA — how flight number, payload mass, and orbit relate to landing success — plus feature engineering for modeling. |
 | 6. Geolocate | [`06_launch_site_location_folium.ipynb`](notebooks/06_launch_site_location_folium.ipynb) | Interactive map of launch sites and their proximity to coastlines, railways, and highways. |
-| 7. Predict | [`07_machine_learning_prediction.ipynb`](notebooks/07_machine_learning_prediction.ipynb) | Tunes Logistic Regression, SVM, Decision Tree, KNN, and XGBoost (`GridSearchCV`), compares them with 10-fold `StratifiedKFold`, explains the winner with SHAP/permutation importance, and translates landing probability into expected launch cost. |
+| 7. Predict | [`07_machine_learning_prediction.ipynb`](notebooks/07_machine_learning_prediction.ipynb) | Tunes Logistic Regression, SVM, Decision Tree, KNN, and XGBoost (`GridSearchCV`), compares them with 10-fold `StratifiedKFold`, explains the winner with SHAP/permutation importance, translates landing probability into expected launch cost, and retrains on the extended 2020-2026 dataset from Notebook 8. |
+| 8. Refresh | [`08_data_refresh.ipynb`](notebooks/08_data_refresh.ipynb) | Scrapes live Wikipedia launch tables for everything since the original dataset's 2020-11-13 cutoff and combines them into a 7.5x larger dataset. |
 
 > **A note on Notebook 1:** the public SpaceX API (`api.spacexdata.com`) has had recurring outages. The notebook tries the live API first and falls back to a frozen local snapshot ([`data/raw/`](data/raw/)) if it's unreachable, so it runs end to end either way — verified by actually triggering the fallback path.
 
@@ -72,6 +73,7 @@ The free tier spins the service down after 15 minutes of inactivity (expect a ~3
 - `spacex_launch_geo.csv` — launch site coordinates
 - `my_data1.db` — SQLite database used for the SQL exploration
 - `raw/` — frozen snapshots of the SpaceX API and Wikipedia sources (see [`data/raw/README.md`](data/raw/README.md))
+- `dataset_part_1_extended.csv` / `dataset_part_3_extended.csv` — the 672-launch dataset from `08_data_refresh.ipynb` (cleaned launches, and its one-hot encoded feature table)
 
 ## What I found
 
@@ -82,6 +84,7 @@ The free tier spins the service down after 15 minutes of inactivity (expect a ~3
 - **SVM wins on a robust comparison.** A single 80/20 split (18 test samples) isn't enough data to reliably rank models — one flipped prediction moves accuracy by ~5.6 points. Under 10-fold `StratifiedKFold` (mean accuracy across folds), **SVM leads at 85.6%**, ahead of KNN (84.4%), Logistic Regression (83.3%), XGBoost (81.1%), and Decision Tree (80.0%).
 - **The winning model's feature importance is a warning sign, not a clean signal.** Permutation importance on SVM (the CV winner) is dominated by individual `Serial`/`LandingPad` one-hot columns with tiny effect sizes (largest ≈0.011) rather than physically meaningful features like `PayloadMass` or `Orbit`. That's a direct symptom of the 83-feature/90-sample overfitting risk flagged in the notebook's limitations section — with this little data, a model can key off near-unique booster identifiers instead of learning a generalizable pattern.
 - **Landing probability translates directly to cost.** Mapping each scenario's predicted success probability onto SpaceX's advertised $62M (reused) / $165M (expendable) prices, expected launch cost ranges from ~$81M for a light LEO payload to ~$94M for a medium payload to ISS orbit — see the [business-impact section](notebooks/07_machine_learning_prediction.ipynb) for the full scenario comparison and its caveats.
+- **More data revealed a sharper problem, not a solved one.** Extending the dataset to 672 launches (2010-2026, via `08_data_refresh.ipynb`) pushed the landing success rate to 93.9% — genuine progress, not noise. But retraining SVM on it exposed something the original 90-launch model's metrics had papered over: the "best" model by cross-validated accuracy turned out to predict *success for every single test launch*, a hollow win driven entirely by class imbalance (only 8 failures in 135 test samples). Neither re-tuning with `f1` scoring nor `class_weight='balanced'` fixed it — the latter just flipped which constant it predicted. That's a more honest, more specific failure mode than the original dataset's diffuse overfitting risk, and a clearer target for future work (see [Model limitations](#model-limitations) below).
 
 ## Stack
 
@@ -89,7 +92,7 @@ Python · pandas · scikit-learn · XGBoost · SHAP · SQLite · BeautifulSoup �
 
 ## What's next
 
-- Pull in more recent launches (Block 5, Starship) to see whether the success-rate ceiling has moved.
+- Fix the class-imbalance problem the extended dataset surfaced — oversampling (SMOTE), a wider `class_weight` sweep, or simply more accumulated failures over time.
 - Add booster-specific reuse count as a feature — a booster on its 10th flight likely behaves differently than one on its 1st.
-- Swap the static dashboard filters for a live-refreshing feed off the SpaceX API.
+- Swap the static dashboard filters for a live-refreshing feed once the SpaceX API recovers (it's been down throughout this project).
 - Replace the marketing-figure cost model in the business-impact section with a more granular cost breakdown, if SpaceX or a comparable provider ever publishes one.

@@ -3,7 +3,10 @@ import pytest
 
 from spacex_capstone.features import (
     BAD_LANDING_OUTCOMES,
+    LAUNCH_SITE_TO_FACILITY,
     build_landing_class,
+    build_landing_class_from_text,
+    normalize_launch_site,
     one_hot_encode_features,
 )
 
@@ -34,6 +37,47 @@ class TestBuildLandingClass:
 
     def test_empty_series_returns_empty_list(self):
         assert build_landing_class(pd.Series([], dtype=str)) == []
+
+
+class TestBuildLandingClassFromText:
+    def test_success_prefix_maps_to_one(self):
+        values = pd.Series(["Success (", "Success", "SUCCESS (drone ship)", "success!"])
+        assert build_landing_class_from_text(values) == [1, 1, 1, 1]
+
+    def test_non_success_prefix_maps_to_zero(self):
+        values = pd.Series(["Failure (", "No attempt", "Partial failure (", ""])
+        assert build_landing_class_from_text(values) == [0, 0, 0, 0]
+
+    def test_mixed_values(self):
+        values = pd.Series(["Success (", "No attempt", "Failure ("])
+        assert build_landing_class_from_text(values) == [1, 0, 0]
+
+    def test_handles_non_string_values(self):
+        # None/NaN can show up from an empty scraped cell; str(value) must
+        # not raise, and should count as a non-success.
+        values = pd.Series(["Success (", None])
+        assert build_landing_class_from_text(values) == [1, 0]
+
+
+class TestNormalizeLaunchSite:
+    def test_known_pad_codes_map_to_facility(self):
+        sites = pd.Series(["CCAFS LC-40", "CCAFS SLC-40", "KSC LC-39A", "VAFB SLC-4E"])
+        result = normalize_launch_site(sites)
+        assert result.tolist() == ["Cape Canaveral", "Cape Canaveral", "Kennedy", "Vandenberg"]
+
+    def test_already_facility_level_names_pass_through(self):
+        sites = pd.Series(["Cape Canaveral", "Kennedy", "Vandenberg"])
+        result = normalize_launch_site(sites)
+        assert result.tolist() == ["Cape Canaveral", "Kennedy", "Vandenberg"]
+
+    def test_unknown_site_passes_through_unchanged(self):
+        sites = pd.Series(["Some Future Site"])
+        assert normalize_launch_site(sites).tolist() == ["Some Future Site"]
+
+    def test_mapping_covers_all_original_pad_codes(self):
+        # Guards against silently losing a mapping if the original dataset's
+        # site-code spelling ever changes.
+        assert set(LAUNCH_SITE_TO_FACILITY.values()) == {"Cape Canaveral", "Kennedy", "Vandenberg"}
 
 
 class TestOneHotEncodeFeatures:
