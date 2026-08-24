@@ -33,7 +33,7 @@ The project follows a full data science workflow, from raw data to a working pre
 
 ## Interactive dashboard
 
-[`dashboard/spacex-dash-app.py`](dashboard/spacex-dash-app.py) is a [Plotly Dash](https://dash.plotly.com/) app for exploring the results interactively — filter by launch site, scan a pie chart of successful launches, or slide through payload mass ranges against landing outcome.
+[`dashboard/spacex-dash-app.py`](dashboard/spacex-dash-app.py) is a [Plotly Dash](https://dash.plotly.com/) app for exploring the results interactively — filter by launch site, scan a pie chart of successful launches, slide through payload mass ranges against landing outcome, or get a real prediction for a hypothetical launch from the Predict panel.
 
 ![Dashboard overview](docs/images/dashboard_overview.png)
 
@@ -41,21 +41,36 @@ The project follows a full data science workflow, from raw data to a working pre
 
 ```bash
 pip install -r dashboard/requirements.txt
+pip install -e .
+python -m spacex_capstone.train_and_export dashboard/model_artifact.joblib
 cd dashboard
 python spacex-dash-app.py
 ```
 
 Then open `http://127.0.0.1:8050/`.
 
+### Live prediction endpoint
+
+The Predict panel calls a plain Flask route (`/predict`) on the same server Dash runs on — no separate API service, just one extra endpoint alongside the dashboard's own routing. It's backed by the calibrated SVM from `07_machine_learning_prediction.ipynb`, trained on the original 90-launch dataset (not the extended 672-launch one — see [Model limitations](#model-limitations)).
+
+```bash
+curl "http://127.0.0.1:8050/predict?payload_mass=4000&orbit=ISS&launch_site=CCAFS%20SLC%2040"
+# {"payload_mass": 4000.0, "orbit": "ISS", "launch_site": "CCAFS SLC 40", "p_success": 0.6925, "expected_cost_usd": 93675131.29}
+```
+
+Valid `orbit` values: `ES-L1`, `GEO`, `GTO`, `HEO`, `ISS`, `LEO`, `MEO`, `PO`, `SO`, `SSO`, `VLEO`. Valid `launch_site` values: `CCAFS SLC 40`, `KSC LC 39A`, `VAFB SLC 4E`.
+
+The model artifact is trained at build/start time by [`src/spacex_capstone/train_and_export.py`](src/spacex_capstone/train_and_export.py) rather than committed to the repo — training takes seconds on this dataset, so there's no cost to regenerating it, and it can't silently drift out of sync with the notebook the way a committed binary could.
+
 **Deploy it for free (Render):**
 
-No account secrets or environment variables are needed — the app only reads a CSV that ships in this repo.
+No account secrets or environment variables are needed — the app only reads a CSV that ships in this repo, and trains its own model artifact at build time.
 
 1. Fork or push this repo to your own GitHub account.
 2. On [render.com](https://render.com), click **New +** → **Blueprint**, connect the repo. Render reads [`render.yaml`](render.yaml) automatically and provisions the service.
 3. Click **Apply** / **Deploy**. That's it — one deploy, no CLI.
 
-If Blueprint deploys aren't available on your plan, deploy manually instead: **New +** → **Web Service** → connect the repo → set **Build Command** to `pip install -r dashboard/requirements.txt` and **Start Command** to `gunicorn spacex-dash-app:server --chdir dashboard`.
+If Blueprint deploys aren't available on your plan, deploy manually instead: **New +** → **Web Service** → connect the repo → set **Build Command** to `pip install -r dashboard/requirements.txt && pip install -e . && python -m spacex_capstone.train_and_export dashboard/model_artifact.joblib` and **Start Command** to `gunicorn spacex-dash-app:server --chdir dashboard`.
 
 The free tier spins the service down after 15 minutes of inactivity (expect a ~30s cold start on the next visit) — fine for a portfolio piece, not for production traffic.
 

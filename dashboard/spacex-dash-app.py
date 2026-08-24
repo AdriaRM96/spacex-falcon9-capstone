@@ -1,12 +1,16 @@
 # Import required libraries
 from pathlib import Path
 
+import joblib
 import pandas as pd
 import dash
 from dash import html
 from dash import dcc
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
+from flask import jsonify, request
 import plotly.express as px
+
+from spacex_capstone.inference import VALID_LAUNCH_SITES, VALID_ORBITS, predict_landing
 
 # Read the SpaceX launch data into a pandas dataframe
 # Resolved relative to this file (not the current working directory), so the
@@ -23,6 +27,22 @@ min_payload = spacex_df['Payload Mass (kg)'].min()
 TOTAL_LAUNCHES = len(spacex_df)
 OVERALL_SUCCESS_RATE = spacex_df['class'].mean() * 100
 LAUNCH_SITES = spacex_df['Launch Site'].nunique()
+
+# The trained model artifact is generated at build time by
+# train_and_export.py (see render.yaml's buildCommand) rather than committed
+# to the repo -- see that script's docstring for why. Locally, run it once
+# yourself before starting the app:
+#   python -m spacex_capstone.train_and_export dashboard/model_artifact.joblib
+MODEL_ARTIFACT_PATH = Path(__file__).resolve().parent / "model_artifact.joblib"
+try:
+    _artifact = joblib.load(MODEL_ARTIFACT_PATH)
+except FileNotFoundError:
+    _artifact = None
+    print(
+        f"No model artifact at {MODEL_ARTIFACT_PATH} -- the Predict tab and /predict route "
+        "will report an error until you run: python -m spacex_capstone.train_and_export "
+        "dashboard/model_artifact.joblib"
+    )
 
 # Google Fonts: Rajdhani (condensed geometric sans for headings/body) and
 # JetBrains Mono (for telemetry-style counters), loaded the same way any
@@ -111,6 +131,41 @@ app.layout = html.Div(className="mission-control", children=[
     # TASK 4: scatter chart showing payload vs. outcome, updated by dropdown + slider
     html.Div(className="chart-panel", children=[dcc.Graph(id='success-payload-scatter-chart')]),
 
+    html.Div(className="controls-panel", children=[
+        html.Div("PREDICT A LAUNCH", className="section-label"),
+        html.P(
+            "Get a real landing-probability prediction from the trained model -- not a lookup "
+            "over past launches, but the model's estimate for a hypothetical mission.",
+            style={"color": "#8a8f98", "fontSize": "0.85rem", "marginTop": "-4px"},
+        ),
+        html.Div(style={"display": "flex", "gap": "16px", "flexWrap": "wrap", "alignItems": "flex-end"}, children=[
+            html.Div(children=[
+                html.Label("Payload mass (kg)", style={"fontSize": "0.8rem", "color": "#8a8f98"}),
+                dcc.Input(id='predict-payload-mass', type='number', value=4000, min=0, max=20000, step=100),
+            ]),
+            html.Div(children=[
+                html.Label("Orbit", style={"fontSize": "0.8rem", "color": "#8a8f98"}),
+                dcc.Dropdown(
+                    id='predict-orbit',
+                    options=[{'label': o, 'value': o} for o in VALID_ORBITS],
+                    value='LEO',
+                    style={"width": "160px"},
+                ),
+            ]),
+            html.Div(children=[
+                html.Label("Launch site", style={"fontSize": "0.8rem", "color": "#8a8f98"}),
+                dcc.Dropdown(
+                    id='predict-launch-site',
+                    options=[{'label': s, 'value': s} for s in VALID_LAUNCH_SITES],
+                    value=VALID_LAUNCH_SITES[0],
+                    style={"width": "220px"},
+                ),
+            ]),
+            html.Button("PREDICT", id='predict-button', n_clicks=0),
+        ]),
+        html.Div(id='predict-result', className="telemetry-row", style={"marginTop": "20px"}),
+    ]),
+
     html.Div(
         "Independent data analysis project. Not affiliated with or endorsed by SpaceX.",
         className="footer",
@@ -166,6 +221,72 @@ def get_scatter_chart(entered_site, payload_range):
                           title=f'Correlation between Payload and Success for site {entered_site}')
     fig.update_layout(**CHART_LAYOUT)
     return fig
+
+
+def _run_prediction(payload_mass, orbit, launch_site):
+    """Shared by the Dash callback and the /predict route so both use the
+    exact same inference call -- see src/spacex_capstone/inference.py."""
+    if _artifact is None:
+        raise RuntimeError(
+            "Model artifact not found. Run: python -m spacex_capstone.train_and_export "
+            "dashboard/model_artifact.joblib"
+        )
+    return predict_landing(
+        payload_mass=float(payload_mass),
+        orbit=orbit,
+        launch_site=launch_site,
+        model=_artifact["model"],
+        scaler=_artifact["scaler"],
+        feature_names=_artifact["feature_names"],
+        baseline=_artifact["baseline"],
+    )
+
+
+# Dash callback: powers the "PREDICT" button in the dashboard's Predict panel.
+@app.callback(
+    Output(component_id='predict-result', component_property='children'),
+    Input(component_id='predict-button', component_property='n_clicks'),
+    [State(component_id='predict-payload-mass', component_property='value'),
+     State(component_id='predict-orbit', component_property='value'),
+     State(component_id='predict-launch-site', component_property='value')],
+    prevent_initial_call=True,
+)
+def on_predict_click(n_clicks, payload_mass, orbit, launch_site):
+    try:
+        result = _run_prediction(payload_mass, orbit, launch_site)
+    except Exception as exc:  # noqa: BLE001 - surfaced to the user, not swallowed
+        return html.Div(str(exc), className="telemetry-badge status-warn")
+
+    return [
+        telemetry_badge(
+            "Landing Success Probability",
+            f"{result.p_success:.1%}",
+            status="good" if result.p_success >= 0.5 else "warn",
+        ),
+        telemetry_badge("Expected Launch Cost", f"${result.expected_cost_usd / 1_000_000:.1f}M"),
+    ]
+
+
+# Plain Flask route on the same server Dash uses -- see the project README
+# for why this isn't a separate FastAPI service. Example:
+#   curl "http://127.0.0.1:8050/predict?payload_mass=4000&orbit=ISS&launch_site=CCAFS%20SLC%2040"
+@server.route('/predict', methods=['GET'])
+def predict_route():
+    try:
+        payload_mass = float(request.args.get('payload_mass', 4000))
+        orbit = request.args.get('orbit', 'LEO')
+        launch_site = request.args.get('launch_site', VALID_LAUNCH_SITES[0])
+        result = _run_prediction(payload_mass, orbit, launch_site)
+    except Exception as exc:  # noqa: BLE001 - reported as a 400, not a 500 traceback
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify({
+        "payload_mass": payload_mass,
+        "orbit": orbit,
+        "launch_site": launch_site,
+        "p_success": result.p_success,
+        "expected_cost_usd": result.expected_cost_usd,
+    })
 
 
 # Run the app
