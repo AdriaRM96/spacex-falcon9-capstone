@@ -36,8 +36,12 @@ body {
 }
 
 .header {
+  /* No border-bottom here on purpose: body's grid background uses
+     background-attachment: fixed, so a real (scrolling) border under the
+     header drifts out of alignment with the (non-scrolling) grid lines as
+     soon as the page scrolls -- two nearly-overlapping lines at the top
+     that visibly separate on scroll. */
   text-align: center;
-  border-bottom: 1px solid var(--line);
   padding-bottom: 20px;
   margin-bottom: 24px;
 }
