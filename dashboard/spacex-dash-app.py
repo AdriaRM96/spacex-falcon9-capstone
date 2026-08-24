@@ -98,72 +98,81 @@ app.layout = html.Div(className="mission-control", children=[
         telemetry_badge("Launch Sites Tracked", str(LAUNCH_SITES)),
     ]),
 
-    html.Div(className="controls-panel", children=[
-        html.Div("SELECT LAUNCH SITE", className="section-label"),
-        # TASK 1: dropdown with an "ALL" option + one option per launch site,
-        # placeholder text, and search enabled (searchable=True is the default)
-        dcc.Dropdown(id='site-dropdown',
-                     options=[
-                         {'label': 'All Sites', 'value': 'ALL'},
-                         {'label': 'CCAFS LC-40', 'value': 'CCAFS LC-40'},
-                         {'label': 'CCAFS SLC-40', 'value': 'CCAFS SLC-40'},
-                         {'label': 'KSC LC-39A', 'value': 'KSC LC-39A'},
-                         {'label': 'VAFB SLC-4E', 'value': 'VAFB SLC-4E'},
-                     ],
-                     value='ALL',
-                     placeholder="Select a Launch Site here",
-                     searchable=True
-                     ),
+    dcc.Tabs(id='main-tabs', value='tab-analytics', className='mc-tabs', children=[
+        dcc.Tab(label='ANALYTICS', value='tab-analytics', className='tab', selected_className='tab--selected', children=[
+            html.Div(className="tab-content", children=[
+                html.Div(className="controls-panel", children=[
+                    html.Div("SELECT LAUNCH SITE", className="section-label"),
+                    # TASK 1: dropdown with an "ALL" option + one option per launch site,
+                    # placeholder text, and search enabled (searchable=True is the default)
+                    dcc.Dropdown(id='site-dropdown',
+                                 options=[
+                                     {'label': 'All Sites', 'value': 'ALL'},
+                                     {'label': 'CCAFS LC-40', 'value': 'CCAFS LC-40'},
+                                     {'label': 'CCAFS SLC-40', 'value': 'CCAFS SLC-40'},
+                                     {'label': 'KSC LC-39A', 'value': 'KSC LC-39A'},
+                                     {'label': 'VAFB SLC-4E', 'value': 'VAFB SLC-4E'},
+                                 ],
+                                 value='ALL',
+                                 placeholder="Select a Launch Site here",
+                                 searchable=True
+                                 ),
 
-        html.Div("PAYLOAD MASS RANGE (KG)", className="section-label"),
-        # TASK 3: range slider from 0 to 10000 kg in steps of 1000 kg
-        dcc.RangeSlider(id='payload-slider',
-                         min=0,
-                         max=10000,
-                         step=1000,
-                         marks={i: str(i) for i in range(0, 10001, 2000)},
-                         value=[min_payload, max_payload]),
-    ]),
+                    html.Div("PAYLOAD MASS RANGE (KG)", className="section-label"),
+                    # TASK 3: range slider from 0 to 10000 kg in steps of 1000 kg
+                    dcc.RangeSlider(id='payload-slider',
+                                     min=0,
+                                     max=10000,
+                                     step=1000,
+                                     marks={i: str(i) for i in range(0, 10001, 2000)},
+                                     value=[min_payload, max_payload]),
+                ]),
 
-    # TASK 2: pie chart showing success counts, updated by the dropdown callback
-    html.Div(className="chart-panel", children=[dcc.Graph(id='success-pie-chart')]),
+                # TASK 2: pie chart showing success counts, updated by the dropdown callback
+                html.Div(className="chart-panel", children=[dcc.Graph(id='success-pie-chart')]),
 
-    # TASK 4: scatter chart showing payload vs. outcome, updated by dropdown + slider
-    html.Div(className="chart-panel", children=[dcc.Graph(id='success-payload-scatter-chart')]),
-
-    html.Div(className="controls-panel", children=[
-        html.Div("PREDICT A LAUNCH", className="section-label"),
-        html.P(
-            "Get a real landing-probability prediction from the trained model -- not a lookup "
-            "over past launches, but the model's estimate for a hypothetical mission.",
-            style={"color": "#8a8f98", "fontSize": "0.85rem", "marginTop": "-4px"},
-        ),
-        html.Div(style={"display": "flex", "gap": "16px", "flexWrap": "wrap", "alignItems": "flex-end"}, children=[
-            html.Div(children=[
-                html.Label("Payload mass (kg)", style={"fontSize": "0.8rem", "color": "#8a8f98"}),
-                dcc.Input(id='predict-payload-mass', type='number', value=4000, min=0, max=20000, step=100),
+                # TASK 4: scatter chart showing payload vs. outcome, updated by dropdown + slider
+                html.Div(className="chart-panel", children=[dcc.Graph(id='success-payload-scatter-chart')]),
             ]),
-            html.Div(children=[
-                html.Label("Orbit", style={"fontSize": "0.8rem", "color": "#8a8f98"}),
-                dcc.Dropdown(
-                    id='predict-orbit',
-                    options=[{'label': o, 'value': o} for o in VALID_ORBITS],
-                    value='LEO',
-                    style={"width": "160px"},
-                ),
-            ]),
-            html.Div(children=[
-                html.Label("Launch site", style={"fontSize": "0.8rem", "color": "#8a8f98"}),
-                dcc.Dropdown(
-                    id='predict-launch-site',
-                    options=[{'label': s, 'value': s} for s in VALID_LAUNCH_SITES],
-                    value=VALID_LAUNCH_SITES[0],
-                    style={"width": "220px"},
-                ),
-            ]),
-            html.Button("PREDICT", id='predict-button', n_clicks=0),
         ]),
-        html.Div(id='predict-result', className="telemetry-row", style={"marginTop": "20px"}),
+        dcc.Tab(label='PREDICT', value='tab-predict', className='tab', selected_className='tab--selected', children=[
+            html.Div(className="tab-content", children=[
+                html.Div(className="controls-panel", children=[
+                    html.Div("PREDICT A LAUNCH", className="section-label"),
+                    html.P(
+                        "Get a real landing-probability prediction from the trained model -- not a lookup "
+                        "over past launches, but the model's estimate for a hypothetical mission.",
+                        style={"color": "#8a8f98", "fontSize": "0.85rem", "marginTop": "-4px"},
+                    ),
+                    html.Div(style={"display": "flex", "gap": "16px", "flexWrap": "wrap", "alignItems": "flex-end"}, children=[
+                        html.Div(children=[
+                            html.Label("Payload mass (kg)", style={"fontSize": "0.8rem", "color": "#8a8f98"}),
+                            dcc.Input(id='predict-payload-mass', type='number', value=4000, min=0, max=20000, step=100),
+                        ]),
+                        html.Div(children=[
+                            html.Label("Orbit", style={"fontSize": "0.8rem", "color": "#8a8f98"}),
+                            dcc.Dropdown(
+                                id='predict-orbit',
+                                options=[{'label': o, 'value': o} for o in VALID_ORBITS],
+                                value='LEO',
+                                style={"width": "160px"},
+                            ),
+                        ]),
+                        html.Div(children=[
+                            html.Label("Launch site", style={"fontSize": "0.8rem", "color": "#8a8f98"}),
+                            dcc.Dropdown(
+                                id='predict-launch-site',
+                                options=[{'label': s, 'value': s} for s in VALID_LAUNCH_SITES],
+                                value=VALID_LAUNCH_SITES[0],
+                                style={"width": "220px"},
+                            ),
+                        ]),
+                        html.Button("PREDICT", id='predict-button', n_clicks=0, className='predict-button'),
+                    ]),
+                    html.Div(id='predict-result', className="telemetry-row", style={"marginTop": "20px"}),
+                ]),
+            ]),
+        ]),
     ]),
 
     html.Div(

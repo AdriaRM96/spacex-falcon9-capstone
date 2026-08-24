@@ -112,12 +112,69 @@ body {
   margin-bottom: 28px;
 }
 
-/* Dash's Dropdown/RangeSlider render their own internal markup -- we only
-   restyle the outer text color so the labels stay readable on a dark page,
-   without fighting the library's own light-themed component internals. */
+/* Dash's Dropdown/Input render on a white background internally, but inherit
+   body's light-gray text color -- light-on-white is nearly unreadable. Force
+   a dark, high-contrast color on the parts that actually sit on that white
+   background, without touching the surrounding dark page. */
 .controls-panel .Select-control,
 .controls-panel input {
   font-family: "Rajdhani", sans-serif;
+}
+
+.dash-dropdown-value,
+.dash-dropdown-value-item,
+.dash-dropdown-placeholder,
+input[type="text"],
+input[type="number"] {
+  color: #111214 !important;
+}
+
+/* Dash Tabs, restyled to match the mission-control theme instead of the
+   default light Dash look. */
+.mc-tabs .tab {
+  background-color: var(--panel) !important;
+  border: 1px solid var(--line) !important;
+  border-bottom: none !important;
+  color: var(--text-dim) !important;
+  font-family: "JetBrains Mono", monospace !important;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.8rem !important;
+  padding: 12px 20px !important;
+}
+
+.mc-tabs .tab--selected {
+  color: var(--accent) !important;
+  border-top: 2px solid var(--accent) !important;
+  box-shadow: none !important;
+}
+
+.mc-tabs .tab-content {
+  border: 1px solid var(--line);
+  border-top: none;
+  padding: 24px;
+  background-color: var(--bg);
+}
+
+/* The PREDICT button, styled to match the mission-control aesthetic instead
+   of the browser's default button chrome. */
+.predict-button {
+  background-color: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: "JetBrains Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.8rem;
+  padding: 10px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.predict-button:hover {
+  background-color: var(--accent);
+  color: var(--bg);
 }
 
 .chart-panel {
