@@ -21,13 +21,6 @@ spacex_df = pd.read_csv(DATA_PATH)
 max_payload = spacex_df['Payload Mass (kg)'].max()
 min_payload = spacex_df['Payload Mass (kg)'].min()
 
-# Static mission-control style stats shown as telemetry badges at the top of
-# the page -- these summarize the whole dataset once at load time, unrelated
-# to the interactive dropdown/slider filters below.
-TOTAL_LAUNCHES = len(spacex_df)
-OVERALL_SUCCESS_RATE = spacex_df['class'].mean() * 100
-LAUNCH_SITES = spacex_df['Launch Site'].nunique()
-
 # The trained model artifact is generated at build time by
 # train_and_export.py (see render.yaml's buildCommand) rather than committed
 # to the repo -- see that script's docstring for why. Locally, run it once
@@ -88,15 +81,11 @@ app.layout = html.Div(className="mission-control", children=[
         html.Div("FALCON 9 FIRST STAGE LANDING PREDICTION SYSTEM", className="subtitle"),
     ]),
 
-    html.Div(className="telemetry-row", children=[
-        telemetry_badge("Total Launches", str(TOTAL_LAUNCHES)),
-        telemetry_badge(
-            "Landing Success Rate",
-            f"{OVERALL_SUCCESS_RATE:.1f}%",
-            status="good" if OVERALL_SUCCESS_RATE >= 50 else "warn",
-        ),
-        telemetry_badge("Launch Sites Tracked", str(LAUNCH_SITES)),
-    ]),
+    # Populated by update_telemetry_row() below, keyed off the same
+    # site-dropdown/payload-slider filters the Analytics charts use, so the
+    # numbers up top always describe what's actually plotted underneath
+    # rather than a fixed whole-dataset summary that never changes.
+    html.Div(id='telemetry-row', className="telemetry-row"),
 
     dcc.Tabs(id='main-tabs', value='tab-analytics', className='mc-tabs', children=[
         dcc.Tab(label='ANALYTICS', value='tab-analytics', className='tab', selected_className='tab--selected', children=[
@@ -230,6 +219,37 @@ def get_scatter_chart(entered_site, payload_range):
                           title=f'Correlation between Payload and Success for site {entered_site}')
     fig.update_layout(**CHART_LAYOUT)
     return fig
+
+
+# Keeps the top telemetry badges in sync with the same site/payload filters
+# the charts above use -- otherwise "Total Launches" and "Success Rate"
+# would silently describe the whole dataset while the charts describe only
+# the current filter, which reads as a bug (and was, until this callback).
+@app.callback(
+    Output(component_id='telemetry-row', component_property='children'),
+    [Input(component_id='site-dropdown', component_property='value'),
+     Input(component_id='payload-slider', component_property='value')]
+)
+def update_telemetry_row(entered_site, payload_range):
+    low, high = payload_range
+    mask = (spacex_df['Payload Mass (kg)'] >= low) & (spacex_df['Payload Mass (kg)'] <= high)
+    filtered_df = spacex_df[mask]
+    if entered_site != 'ALL':
+        filtered_df = filtered_df[filtered_df['Launch Site'] == entered_site]
+
+    total_launches = len(filtered_df)
+    success_rate = filtered_df['class'].mean() * 100 if total_launches else 0.0
+    sites_tracked = filtered_df['Launch Site'].nunique()
+
+    return [
+        telemetry_badge("Total Launches", str(total_launches)),
+        telemetry_badge(
+            "Landing Success Rate",
+            f"{success_rate:.1f}%",
+            status="good" if success_rate >= 50 else "warn",
+        ),
+        telemetry_badge("Launch Sites Tracked", str(sites_tracked)),
+    ]
 
 
 def _run_prediction(payload_mass, orbit, launch_site):
