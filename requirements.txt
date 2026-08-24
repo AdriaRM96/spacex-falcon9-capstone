@@ -25,7 +25,14 @@ plotly==6.9.0
 joblib==1.4.2
 
 # Modeling benchmark and interpretability
-xgboost==3.4.1
+# 3.2.0 is pinned (not the newer 3.3.x/3.4.x also on PyPI) because those
+# don't ship a manylinux wheel for the cp311/ubuntu-latest combination the
+# CI runner uses -- pip's resolver silently excludes them there and fails
+# with "no matching distribution" (confirmed directly from a failed CI run;
+# this had gone unnoticed because it was only ever verified in a local
+# macOS venv, which already had a newer xgboost pre-installed from outside
+# PyPI).
+xgboost==3.2.0
 shap==0.46.0
 
 # Notebook execution / CI
