@@ -35,7 +35,14 @@ The project follows a full data science workflow, from raw data to a working pre
 
 [`dashboard/spacex-dash-app.py`](dashboard/spacex-dash-app.py) is a [Plotly Dash](https://dash.plotly.com/) app for exploring the results interactively — filter by launch site, scan a pie chart of successful launches, slide through payload mass ranges against landing outcome, or get a real prediction for a hypothetical launch from the Predict panel.
 
+![Dashboard demo — filtering by launch site and dragging the payload mass slider](docs/images/dashboard_demo.gif)
+
+<details>
+<summary>Static screenshot</summary>
+
 ![Dashboard overview](docs/images/dashboard_overview.png)
+
+</details>
 
 **Run it locally:**
 
