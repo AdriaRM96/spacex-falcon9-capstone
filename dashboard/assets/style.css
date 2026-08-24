@@ -8,6 +8,15 @@
   --line: #2a2c30;
 }
 
+html {
+  /* Always reserve space for the vertical scrollbar, even on pages short
+     enough not to need one -- otherwise switching from a tall tab
+     (Analytics, with charts) to a short one (Predict) removes the
+     scrollbar and shifts all the centered content (.mission-control's
+     margin: 0 auto) a few pixels right, which reads as a layout bug. */
+  overflow-y: scroll;
+}
+
 body {
   background-color: var(--bg);
   background-image:
