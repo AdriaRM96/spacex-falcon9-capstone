@@ -184,14 +184,20 @@ def get_pie_chart(entered_site):
                      title='Total Success Launches by Site',
                      color_discrete_sequence=['#e5312f', '#1a5fb4', '#2ec27e', '#f5c211'])
     else:
-        # For one site, show success (1) vs failure (0) counts within that site only
+        # For one site, show landing outcome (Success/Failure) counts within that site only.
+        # Map the raw 0/1 class value to a readable label rather than showing "0"/"1" in
+        # the legend, and color by that label explicitly (color_discrete_map) rather than
+        # positionally (color_discrete_sequence) -- otherwise which color means "Success"
+        # flips depending on whether that site happens to have more successes or failures.
         filtered_df = spacex_df[spacex_df['Launch Site'] == entered_site]
         outcome_counts = filtered_df['class'].value_counts().reset_index()
         outcome_counts.columns = ['class', 'count']
+        outcome_counts['Outcome'] = outcome_counts['class'].map({1: 'Success', 0: 'Failure'})
         fig = px.pie(outcome_counts, values='count',
-                     names='class',
+                     names='Outcome',
                      title=f'Total Success Launches for site {entered_site}',
-                     color_discrete_sequence=['#2ec27e', '#e5312f'])
+                     color='Outcome',
+                     color_discrete_map={'Success': '#2ec27e', 'Failure': '#e5312f'})
     fig.update_layout(**CHART_LAYOUT)
     return fig
 
